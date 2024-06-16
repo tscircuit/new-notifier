@@ -41,21 +41,29 @@ async function main() {
 
   console.table(latestVersions)
 
-  console.log("Polling every 30s for new versions...")
+  console.log("Polling for new versions...")
 
-  // Polling every 30 seconds
-  setInterval(async () => {
-    for (const repo of repositories) {
-      const latestVersion = await getLatestVersion(repo)
-      if (latestVersion.version !== latestVersions[repo].version) {
-        console.log(
-          `New version ${latestVersion.version} of ${repo} was published`
-        )
-        sendNotification(repo, latestVersion.version)
-        latestVersions[repo] = latestVersion
+  let lastPoll = Date.now()
+  while (true) {
+    try {
+      for (const repo of repositories) {
+        const latestVersion = await getLatestVersion(repo)
+        if (latestVersion.version !== latestVersions[repo].version) {
+          console.log(
+            `New version ${latestVersion.version} of ${repo} was published`
+          )
+          sendNotification(repo, latestVersion.version)
+          latestVersions[repo] = latestVersion
+        }
       }
+      let timePassed = ((Date.now() - lastPoll) / 1_000).toFixed(1)
+      console.log(`Polled every repo [${timePassed}s]`)
+    } catch (e) {
+      console.error("Error occurred:", e)
     }
-  }, 30000)
+    await new Promise((resolve) => setTimeout(resolve, 20_000))
+    lastPoll = Date.now()
+  }
 }
 
 // Run the main function
